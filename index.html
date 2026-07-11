@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仕入れ同行 参加申し込み</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== リセット & ベース ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #b8962e;
+      --gold-light: #d4af5a;
+      --gold-dark: #8a6f1e;
+      --gold-bg: #fdf8ef;
+      --dark: #1a1a1a;
+      --dark-mid: #2c2c2c;
+      --gray: #6b6b6b;
+      --gray-light: #e8e8e8;
+      --white: #ffffff;
+      --surface: #f9f6f0;
+      --danger: #c0392b;
+      --success: #27ae60;
+      --radius: 8px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --shadow-card: 0 4px 20px rgba(0,0,0,0.10);
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--surface);
+      color: var(--dark);
+      line-height: 1.7;
+      font-size: 15px;
+      min-height: 100vh;
+    }
+
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { color: var(--gold-dark); text-decoration: underline; }
+
+    /* ===== ヘッダー ===== */
+    header {
+      background: var(--dark);
+      color: var(--white);
+      padding: 0 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .header-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--gold-light);
+    }
+    .header-title span {
+      color: var(--white);
+      font-weight: 300;
+      font-size: 14px;
+      display: block;
+      letter-spacing: 0.1em;
+    }
+    .header-nav a {
+      color: var(--gray-light);
+      font-size: 12px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .header-nav a:hover { opacity: 1; text-decoration: none; }
+
+    /* ===== メインコンテンツ ===== */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 16px 80px;
+    }
+
+    /* ===== セクションタイトル ===== */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--gold-light);
+    }
+
+    /* ===== スケジュールカード ===== */
+    .schedules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .schedule-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .schedule-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    }
+    .schedule-card:hover:not(.sold-out) {
+      border-color: var(--gold-light);
+      box-shadow: 0 6px 24px rgba(184,150,46,0.2);
+      transform: translateY(-2px);
+    }
+    .schedule-card.selected {
+      border-color: var(--gold);
+      box-shadow: 0 6px 24px rgba(184,150,46,0.25);
+    }
+    .schedule-card.sold-out {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .card-date {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 4px;
+    }
+    .card-time {
+      font-size: 13px;
+      color: var(--gray);
+      margin-bottom: 10px;
+    }
+    .card-location {
+      font-size: 14px;
+      color: var(--dark-mid);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .card-location::before {
+      content: '📍';
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--gray-light);
+    }
+    .card-remaining {
+      font-size: 13px;
+      color: var(--gray);
+    }
+    .card-remaining strong {
+      color: var(--gold-dark);
+      font-size: 16px;
+    }
+    .badge-soldout {
+      background: var(--danger);
+      color: var(--white);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+    .badge-selected {
+      background: var(--gold);
+      color: var(--white);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: var(--gray);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    /* ===== フォーム ===== */
+    .form-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 24px;
+    }
+    .form-selected-info {
+      background: var(--gold-bg);
+      border: 1px solid var(--gold-light);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--dark-mid);
+    }
+    .form-selected-info strong {
+      color: var(--gold-dark);
+      font-size: 15px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--dark-mid);
+      margin-bottom: 6px;
+      letter-spacing: 0.03em;
+    }
+    label .required {
+      color: var(--danger);
+      margin-left: 4px;
+      font-size: 11px;
+    }
+    label .optional {
+      color: var(--gray);
+      margin-left: 4px;
+      font-size: 11px;
+      font-weight: 400;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--gray-light);
+      border-radius: var(--radius);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 15px;
+      color: var(--dark);
+      background: var(--white);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(184,150,46,0.12);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.6;
+    }
+
+    /* ===== ボタン ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 24px;
+      border-radius: var(--radius);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s, opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.05em;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: var(--white);
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      background: var(--white);
+      color: var(--dark);
+      border: 1px solid var(--gray-light);
+    }
+    .btn-secondary:hover { background: var(--surface); }
+    .btn-danger {
+      background: var(--danger);
+      color: var(--white);
+    }
+    .btn-danger:hover { opacity: 0.85; }
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 12px;
+    }
+    .btn-gold-outline {
+      background: transparent;
+      color: var(--gold);
+      border: 1px solid var(--gold);
+    }
+    .btn-gold-outline:hover { background: var(--gold-bg); }
+
+    /* ===== メッセージ ===== */
+    .msg-success {
+      background: #eafaf1;
+      border: 1px solid #a9dfbf;
+      color: var(--success);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .msg-error {
+      background: #fdf2f2;
+      border: 1px solid #f5b7b1;
+      color: var(--danger);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .msg-info {
+      background: var(--gold-bg);
+      border: 1px solid var(--gold-light);
+      color: var(--gold-dark);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    /* ===== スピナー ===== */
+    .spinner-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .spinner-overlay.active { display: flex; }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: var(--gold-light);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .spinner-label {
+      color: var(--white);
+      font-size: 13px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* インラインスピナー */
+    .spinner-inline {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+    }
+
+    /* ===== モーダル ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--white);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--gray-light);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: var(--gray);
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--dark); }
+    .modal-body { padding: 20px 24px 24px; }
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 16px 24px;
+      border-top: 1px solid var(--gray-light);
+    }
+
+    /* ===== 管理ページ ===== */
+    .admin-page { display: none; }
+    .admin-page.active { display: block; }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 28px;
+      border-bottom: 2px solid var(--gray-light);
+    }
+    .tab-btn {
+      padding: 10px 24px;
+      background: none;
+      border: none;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s;
+    }
+    .tab-btn.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+      font-weight: 700;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ===== テーブル ===== */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--white);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    th {
+      background: var(--dark);
+      color: var(--gold-light);
+      font-weight: 700;
+      padding: 12px 14px;
+      text-align: left;
+      letter-spacing: 0.04em;
+    }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--gray-light);
+      color: var(--dark-mid);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--gold-bg); }
+    .td-actions { display: flex; gap: 6px; }
+
+    /* ===== 管理ツールバー ===== */
+    .admin-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* ===== ページ切り替え ===== */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ===== 管理ヘッダー ===== */
+    .admin-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .admin-header-bar h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--dark);
+    }
+
+    /* ===== フォーム選択ヒント ===== */
+    .schedule-hint {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray);
+      font-size: 14px;
+    }
+    .schedule-hint .hint-icon { font-size: 36px; margin-bottom: 10px; }
+
+    /* ===== 完了メッセージ ===== */
+    .thanks-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 48px 32px;
+      text-align: center;
+      box-shadow: var(--shadow-card);
+    }
+    .thanks-icon { font-size: 48px; margin-bottom: 16px; }
+    .thanks-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 10px;
+    }
+    .thanks-sub {
+      font-size: 14px;
+      color: var(--gray);
+      line-height: 1.8;
+    }
+
+    /* ===== フッター ===== */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--gray);
+      font-size: 12px;
+    }
+
+    /* ===== レスポンシブ ===== */
+    @media (max-width: 600px) {
+      .header-title { font-size: 15px; }
+      main { padding: 20px 12px 60px; }
+      .form-card { padding: 20px 16px; }
+      .modal-body { padding: 16px; }
+      .modal-footer { flex-direction: column; }
+      .modal-footer .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== スピナー ===== -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner"></div>
+  <div class="spinner-label" id="spinnerLabel">読み込み中...</div>
+</div>
+
+<!-- ===== 管理者パスワードモーダル ===== -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">管理者認証</div>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--gray);margin-bottom:16px;">管理者キーを入力してください。</p>
+      <div class="form-group">
+        <label for="authKeyInput">管理者キー</label>
+        <input type="password" id="authKeyInput" placeholder="管理者キーを入力">
+      </div>
+      <div id="authError"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="goHome()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1" onclick="doAuth()">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== スケジュール追加/編集モーダル ===== -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="scheduleModalTitle">日程を追加</div>
+      <button class="modal-close" onclick="closeScheduleModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="scheduleEditId">
+      <div class="form-group">
+        <label for="sDate">日付 <span class="required">*必須</span></label>
+        <input type="date" id="sDate">
+      </div>
+      <div class="form-group">
+        <label for="sTime">時刻</label>
+        <input type="time" id="sTime">
+      </div>
+      <div class="form-group">
+        <label for="sLocation">場所・集合場所 <span class="required">*必須</span></label>
+        <input type="text" id="sLocation" placeholder="例: 東京都台東区 上野駅 公園口">
+      </div>
+      <div class="form-group">
+        <label for="sCapacity">定員 <span class="required">*必須</span></label>
+        <input type="number" id="sCapacity" min="1" placeholder="例: 5">
+      </div>
+      <div class="form-group">
+        <label for="sDescription">説明・備考 <span class="optional">任意</span></label>
+        <textarea id="sDescription" rows="3" placeholder="参加条件、当日の流れ、持ち物など"></textarea>
+      </div>
+      <div id="scheduleModalError"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeScheduleModal()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1" id="scheduleModalSubmitBtn" onclick="submitScheduleModal()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 削除確認モーダル ===== -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">削除の確認</div>
+      <button class="modal-close" onclick="closeDeleteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;line-height:1.8;">このスケジュールを削除すると、<strong>関連する申し込みデータもすべて削除</strong>されます。<br>この操作は取り消せません。本当に削除しますか？</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">キャンセル</button>
+      <button class="btn btn-danger" id="deleteConfirmBtn" onclick="confirmDelete()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ヘッダー ===== -->
+<header>
+  <div class="header-inner">
+    <div class="header-title">
+      仕入れ同行
+      <span>Buying Trip</span>
+    </div>
+    <nav class="header-nav" id="headerNav">
+      <a href="#admin" id="adminLink">管理者ページ</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== メインコンテンツ ===== -->
+<main>
+
+  <!-- ========== 申込ページ ========== -->
+  <div class="page active" id="publicPage">
+
+    <div id="thankYouSection" style="display:none">
+      <div class="thanks-card">
+        <div class="thanks-icon">✅</div>
+        <div class="thanks-title">お申し込みありがとうございます</div>
+        <div class="thanks-sub">
+          ご登録いただいた内容を確認し、<br>担当者よりご連絡いたします。<br><br>
+          今しばらくお待ちください。
+        </div>
+        <button class="btn btn-gold-outline" style="margin-top:28px" onclick="resetPublicPage()">トップに戻る</button>
+      </div>
+    </div>
+
+    <div id="publicMain">
+      <!-- スケジュール一覧 -->
+      <div class="section-title">参加可能な日程</div>
+      <div id="schedulesContainer">
+        <div class="msg-info">スケジュールを読み込み中...</div>
+      </div>
+
+      <!-- 申し込みフォーム -->
+      <div id="formSection" style="display:none">
+        <div class="section-title" style="margin-top:40px">参加申し込み</div>
+        <div class="form-card">
+          <div class="form-selected-info" id="selectedInfo"></div>
+
+          <div id="formError"></div>
+
+          <form id="applyForm" onsubmit="submitApply(event)">
+            <div class="form-group">
+              <label for="fName">お名前 <span class="required">*必須</span></label>
+              <input type="text" id="fName" placeholder="山田 花子" required>
+            </div>
+            <div class="form-group">
+              <label for="fInstagram">Instagram ID <span class="optional">任意</span></label>
+              <input type="text" id="fInstagram" placeholder="@example">
+            </div>
+            <div class="form-group">
+              <label for="fLine">LINE ID <span class="optional">任意</span></label>
+              <input type="text" id="fLine" placeholder="example_line">
+            </div>
+            <div class="form-group">
+              <label for="fPhone">電話番号 <span class="optional">任意</span></label>
+              <input type="tel" id="fPhone" placeholder="090-0000-0000">
+            </div>
+            <div class="form-group">
+              <label for="fEmail">メールアドレス <span class="optional">任意</span></label>
+              <input type="email" id="fEmail" placeholder="example@email.com">
+            </div>
+            <div class="form-group">
+              <label for="fNote">備考 <span class="optional">任意</span></label>
+              <textarea id="fNote" placeholder="ご質問・ご要望などあればご記入ください"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" id="submitBtn">申し込みを送信する</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 管理ページ ========== -->
+  <div class="page" id="adminPage">
+    <div class="admin-header-bar">
+      <h2>管理ダッシュボード</h2>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">ログアウト</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('scheduleTab', this)">スケジュール管理</button>
+      <button class="tab-btn" onclick="switchTab('applicationTab', this)">申込者一覧</button>
+    </div>
+
+    <!-- スケジュール管理タブ -->
+    <div class="tab-content active" id="scheduleTab">
+      <div class="admin-toolbar">
+        <div style="font-size:14px;color:var(--gray)">登録済みスケジュール</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddScheduleModal()" style="width:auto">＋ 日程を追加</button>
+      </div>
+      <div id="adminScheduleMsg"></div>
+      <div class="table-wrap">
+        <table id="adminScheduleTable">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>時刻</th>
+              <th>場所</th>
+              <th>定員</th>
+              <th>申込数</th>
+              <th>残席</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="adminScheduleBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 申込者一覧タブ -->
+    <div class="tab-content" id="applicationTab">
+      <div class="admin-toolbar">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <select id="applicationFilter" onchange="loadApplications()" style="min-width:200px">
+            <option value="">全件表示</option>
+          </select>
+          <span id="applicationCount" style="font-size:13px;color:var(--gray)"></span>
+        </div>
+        <button class="btn btn-gold-outline btn-sm" onclick="downloadCSV()" style="width:auto">CSVダウンロード</button>
+      </div>
+      <div id="adminApplicationMsg"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>申込日時</th>
+              <th>お名前</th>
+              <th>スケジュール</th>
+              <th>Instagram</th>
+              <th>LINE</th>
+              <th>電話番号</th>
+              <th>メール</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+          <tbody id="adminApplicationBody">
+            <tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">スケジュールを選択してください</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  &copy; 仕入れ同行 参加申し込みシステム
+</footer>
+
+<script>
+// ============================================================
+// ★ GAS Web App の URL をここに設定してください ★
+// Google Apps Script でデプロイ後に表示されるURLを貼り付けてください
+// 例: 'https://script.google.com/macros/s/XXXXXXX/exec'
+// ============================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxCl2STzpFC_vv1JzyuEIQdZmuhLhKrwoSwza0d7PIGVC_P9mRW9ydXCn9XmGkQt_D3tg/exec';
+// ============================================================
+
+// ===== 状態管理 =====
+let selectedScheduleId = null;
+let schedules = [];
+let adminKey = '';
+let deleteTargetId = null;
+let applications = [];
+
+// ===== ユーティリティ =====
+
+function showSpinner(label) {
+  document.getElementById('spinnerLabel').textContent = label || '読み込み中...';
+  document.getElementById('spinnerOverlay').classList.add('active');
+}
+function hideSpinner() {
+  document.getElementById('spinnerOverlay').classList.remove('active');
+}
+
+function showModal(id) { document.getElementById(id).classList.add('active'); }
+function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(String(dateStr).replace(/\//g, '-'));
+  if (isNaN(d)) return dateStr;
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}（${days[d.getDay()]}）`;
+}
+
+// GASへのリクエスト（GET）
+async function gasGet(params) {
+  if (!GAS_URL) return { success: false, message: 'GAS_URL が設定されていません。index.html の先頭付近の GAS_URL 変数にURLを貼り付けてください。' };
+  const url = new URL(GAS_URL);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString(), { redirect: 'follow' });
+  return res.json();
+}
+
+// GASへのリクエスト（POST）
+async function gasPost(body) {
+  if (!GAS_URL) return { success: false, message: 'GAS_URL が設定されていません。index.html の先頭付近の GAS_URL 変数にURLを貼り付けてください。' };
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+// ===== ページルーティング =====
+
+function goHome() {
+  hideModal('authModal');
+  location.hash = '';
+  showPage('publicPage');
+  document.getElementById('adminLink').textContent = '管理者ページ';
+  document.getElementById('adminLink').href = '#admin';
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function handleRoute() {
+  const hash = location.hash;
+  if (hash === '#admin') {
+    const saved = localStorage.getItem('adminKey');
+    if (saved) {
+      adminKey = saved;
+      openAdminPage();
+    } else {
+      showPage('publicPage');
+      document.getElementById('authKeyInput').value = '';
+      document.getElementById('authError').innerHTML = '';
+      showModal('authModal');
+    }
+  } else {
+    showPage('publicPage');
+  }
+}
+
+window.addEventListener('hashchange', handleRoute);
+window.addEventListener('DOMContentLoaded', () => {
+  handleRoute();
+  if (location.hash !== '#admin') {
+    loadSchedules();
+  }
+});
+
+// ===== 認証 =====
+
+async function doAuth() {
+  const key = document.getElementById('authKeyInput').value.trim();
+  if (!key) {
+    document.getElementById('authError').innerHTML = '<div class="msg-error">管理者キーを入力してください</div>';
+    return;
+  }
+  showSpinner('認証中...');
+  try {
+    const result = await gasGet({ action: 'getApplications', adminKey: key });
+    hideSpinner();
+    if (result.success) {
+      adminKey = key;
+      localStorage.setItem('adminKey', key);
+      hideModal('authModal');
+      openAdminPage();
+    } else {
+      document.getElementById('authError').innerHTML = '<div class="msg-error">管理者キーが正しくありません</div>';
+    }
+  } catch (e) {
+    hideSpinner();
+    document.getElementById('authError').innerHTML = `<div class="msg-error">接続エラー: ${e.message}</div>`;
+  }
+}
+
+// Enterキーでもログイン
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('authKeyInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doAuth();
+  });
+});
+
+function logout() {
+  localStorage.removeItem('adminKey');
+  adminKey = '';
+  goHome();
+}
+
+// ===== 管理ページ表示 =====
+
+function openAdminPage() {
+  showPage('adminPage');
+  document.getElementById('adminLink').textContent = '申込ページへ';
+  document.getElementById('adminLink').href = '#';
+  document.getElementById('adminLink').onclick = (e) => { e.preventDefault(); goHome(); loadSchedules(); };
+  loadAdminSchedules();
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+  if (tabId === 'applicationTab') {
+    loadApplications();
+  }
+}
+
+// ===== 申込ページ: スケジュール読み込み =====
+
+async function loadSchedules() {
+  const container = document.getElementById('schedulesContainer');
+  container.innerHTML = '<div class="msg-info">スケジュールを読み込み中...</div>';
+  try {
+    const result = await gasGet({ action: 'getSchedules' });
+    if (!result.success) {
+      container.innerHTML = `<div class="msg-error">${result.message || 'スケジュールの取得に失敗しました'}</div>`;
+      return;
+    }
+    schedules = result.data || [];
+    renderScheduleCards(schedules);
+  } catch (e) {
+    container.innerHTML = `<div class="msg-error">接続エラー: ${e.message}<br><small>GAS_URLが正しく設定されているか確認してください</small></div>`;
+  }
+}
+
+function renderScheduleCards(list) {
+  const container = document.getElementById('schedulesContainer');
+  if (!list || list.length === 0) {
+    container.innerHTML = '<div class="msg-info" style="text-align:center;padding:32px">現在、申し込み可能なスケジュールはありません。</div>';
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'schedules-grid';
+
+  list.forEach(s => {
+    const isSoldOut = s.remaining <= 0;
+    const card = document.createElement('div');
+    card.className = 'schedule-card' + (isSoldOut ? ' sold-out' : '');
+    card.dataset.id = s.id;
+
+    card.innerHTML = `
+      <div class="card-date">${formatDate(s.date)}</div>
+      <div class="card-time">${s.time || '時刻未定'}</div>
+      <div class="card-location">${s.location || '場所未定'}</div>
+      ${s.description ? `<div class="card-desc">${s.description}</div>` : ''}
+      <div class="card-footer">
+        <div class="card-remaining">
+          残席 <strong>${isSoldOut ? '0' : s.remaining}</strong> / ${s.capacity}
+        </div>
+        ${isSoldOut
+          ? '<span class="badge-soldout">満席</span>'
+          : '<span class="badge-selected" style="display:none" data-badge>選択中</span>'
+        }
+      </div>
+    `;
+
+    if (!isSoldOut) {
+      card.addEventListener('click', () => selectSchedule(s.id, s, card));
+    }
+
+    grid.appendChild(card);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(grid);
+}
+
+function selectSchedule(id, data, cardEl) {
+  // 既存の選択を解除
+  document.querySelectorAll('.schedule-card.selected').forEach(c => {
+    c.classList.remove('selected');
+    const badge = c.querySelector('[data-badge]');
+    if (badge) badge.style.display = 'none';
+  });
+
+  if (selectedScheduleId === id) {
+    // 同じカードをクリックで選択解除
+    selectedScheduleId = null;
+    document.getElementById('formSection').style.display = 'none';
+    return;
+  }
+
+  selectedScheduleId = id;
+  cardEl.classList.add('selected');
+  const badge = cardEl.querySelector('[data-badge]');
+  if (badge) badge.style.display = 'inline';
+
+  // フォーム表示
+  document.getElementById('selectedInfo').innerHTML = `
+    <div style="font-size:12px;color:var(--gray);margin-bottom:4px">選択中のスケジュール</div>
+    <strong>${formatDate(data.date)} ${data.time || ''}</strong><br>
+    <span style="font-size:13px">${data.location}</span>
+    <span style="float:right;font-size:13px;color:var(--gold-dark)">残席 ${data.remaining}席</span>
+  `;
+  document.getElementById('formSection').style.display = 'block';
+  document.getElementById('formSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('formError').innerHTML = '';
+}
+
+// ===== 申し込みフォーム送信 =====
+
+async function submitApply(e) {
+  e.preventDefault();
+  if (!selectedScheduleId) {
+    document.getElementById('formError').innerHTML = '<div class="msg-error">日程を選択してください</div>';
+    return;
+  }
+
+  const name = document.getElementById('fName').value.trim();
+  if (!name) {
+    document.getElementById('formError').innerHTML = '<div class="msg-error">お名前を入力してください</div>';
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-inline"></span> 送信中...';
+
+  try {
+    const result = await gasPost({
+      action: 'apply',
+      scheduleId: selectedScheduleId,
+      name,
+      instagram: document.getElementById('fInstagram').value.trim(),
+      line: document.getElementById('fLine').value.trim(),
+      phone: document.getElementById('fPhone').value.trim(),
+      email: document.getElementById('fEmail').value.trim(),
+      note: document.getElementById('fNote').value.trim()
+    });
+
+    if (result.success) {
+      document.getElementById('publicMain').style.display = 'none';
+      document.getElementById('thankYouSection').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      document.getElementById('formError').innerHTML = `<div class="msg-error">${result.message || '送信に失敗しました'}</div>`;
+    }
+  } catch (err) {
+    document.getElementById('formError').innerHTML = `<div class="msg-error">通信エラー: ${err.message}</div>`;
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '申し込みを送信する';
+  }
+}
+
+function resetPublicPage() {
+  selectedScheduleId = null;
+  document.getElementById('thankYouSection').style.display = 'none';
+  document.getElementById('publicMain').style.display = 'block';
+  document.getElementById('applyForm').reset();
+  document.getElementById('formSection').style.display = 'none';
+  document.getElementById('formError').innerHTML = '';
+  loadSchedules();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== 管理: スケジュール一覧 =====
+
+async function loadAdminSchedules() {
+  const tbody = document.getElementById('adminScheduleBody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px">読み込み中...</td></tr>';
+  document.getElementById('adminScheduleMsg').innerHTML = '';
+
+  try {
+    const result = await gasGet({ action: 'getSchedules' });
+    if (!result.success) {
+      document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">${result.message}</div>`;
+      tbody.innerHTML = '';
+      return;
+    }
+    schedules = result.data || [];
+    renderAdminScheduleTable(schedules);
+    updateApplicationFilter(schedules);
+  } catch (e) {
+    document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">接続エラー: ${e.message}</div>`;
+    tbody.innerHTML = '';
+  }
+}
+
+function renderAdminScheduleTable(list) {
+  const tbody = document.getElementById('adminScheduleBody');
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px">スケジュールがありません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td>${formatDate(s.date)}</td>
+      <td>${s.time || '-'}</td>
+      <td style="white-space:normal;min-width:140px">${s.location}</td>
+      <td style="text-align:center">${s.capacity}</td>
+      <td style="text-align:center">${s.applied}</td>
+      <td style="text-align:center;color:${s.remaining <= 0 ? 'var(--danger)' : 'var(--success)'};font-weight:700">${s.remaining <= 0 ? '満席' : s.remaining}</td>
+      <td>
+        <div class="td-actions">
+          <button class="btn btn-secondary btn-sm" onclick='openEditScheduleModal(${JSON.stringify(s)})'>編集</button>
+          <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${s.id}')">削除</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ===== 管理: スケジュール追加モーダル =====
+
+function openAddScheduleModal() {
+  document.getElementById('scheduleModalTitle').textContent = '日程を追加';
+  document.getElementById('scheduleModalSubmitBtn').textContent = '追加する';
+  document.getElementById('scheduleEditId').value = '';
+  document.getElementById('sDate').value = '';
+  document.getElementById('sTime').value = '';
+  document.getElementById('sLocation').value = '';
+  document.getElementById('sCapacity').value = '';
+  document.getElementById('sDescription').value = '';
+  document.getElementById('scheduleModalError').innerHTML = '';
+  showModal('scheduleModal');
+}
+
+function openEditScheduleModal(s) {
+  document.getElementById('scheduleModalTitle').textContent = '日程を編集';
+  document.getElementById('scheduleModalSubmitBtn').textContent = '更新する';
+  document.getElementById('scheduleEditId').value = s.id;
+  // 日付をinput[type=date]形式に変換
+  const dateVal = String(s.date).replace(/\//g, '-');
+  document.getElementById('sDate').value = dateVal;
+  document.getElementById('sTime').value = s.time || '';
+  document.getElementById('sLocation').value = s.location || '';
+  document.getElementById('sCapacity').value = s.capacity;
+  document.getElementById('sDescription').value = s.description || '';
+  document.getElementById('scheduleModalError').innerHTML = '';
+  showModal('scheduleModal');
+}
+
+function closeScheduleModal() {
+  hideModal('scheduleModal');
+}
+
+async function submitScheduleModal() {
+  const editId = document.getElementById('scheduleEditId').value;
+  const date = document.getElementById('sDate').value;
+  const time = document.getElementById('sTime').value;
+  const location = document.getElementById('sLocation').value.trim();
+  const capacity = document.getElementById('sCapacity').value;
+  const description = document.getElementById('sDescription').value.trim();
+
+  if (!date || !location || !capacity) {
+    document.getElementById('scheduleModalError').innerHTML = '<div class="msg-error">日付・場所・定員は必須です</div>';
+    return;
+  }
+
+  const btn = document.getElementById('scheduleModalSubmitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-inline"></span> 送信中...';
+
+  try {
+    let result;
+    // 日付を YYYY/MM/DD 形式に変換
+    const formattedDate = date.replace(/-/g, '/');
+
+    if (editId) {
+      result = await gasPost({ action: 'updateSchedule', adminKey, id: editId, date: formattedDate, time, location, capacity: Number(capacity), description });
+    } else {
+      result = await gasPost({ action: 'addSchedule', adminKey, date: formattedDate, time, location, capacity: Number(capacity), description });
+    }
+
+    if (result.success) {
+      closeScheduleModal();
+      loadAdminSchedules();
+    } else {
+      document.getElementById('scheduleModalError').innerHTML = `<div class="msg-error">${result.message}</div>`;
+    }
+  } catch (e) {
+    document.getElementById('scheduleModalError').innerHTML = `<div class="msg-error">通信エラー: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = editId ? '更新する' : '追加する';
+  }
+}
+
+// ===== 管理: スケジュール削除 =====
+
+function openDeleteModal(id) {
+  deleteTargetId = id;
+  showModal('deleteModal');
+}
+function closeDeleteModal() {
+  hideModal('deleteModal');
+  deleteTargetId = null;
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId) return;
+  const btn = document.getElementById('deleteConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-inline"></span> 削除中...';
+
+  try {
+    const result = await gasPost({ action: 'deleteSchedule', adminKey, id: deleteTargetId });
+    if (result.success) {
+      closeDeleteModal();
+      loadAdminSchedules();
+    } else {
+      closeDeleteModal();
+      document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">${result.message}</div>`;
+    }
+  } catch (e) {
+    closeDeleteModal();
+    document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">通信エラー: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '削除する';
+  }
+}
+
+// ===== 管理: 申込者一覧 =====
+
+function updateApplicationFilter(list) {
+  const sel = document.getElementById('applicationFilter');
+  sel.innerHTML = '<option value="">全件表示</option>';
+  (list || []).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${formatDate(s.date)} ${s.time} ${s.location}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadApplications() {
+  const tbody = document.getElementById('adminApplicationBody');
+  const msg = document.getElementById('adminApplicationMsg');
+  const scheduleId = document.getElementById('applicationFilter').value;
+
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">読み込み中...</td></tr>';
+  msg.innerHTML = '';
+
+  try {
+    const params = { action: 'getApplications', adminKey };
+    if (scheduleId) params.scheduleId = scheduleId;
+    const result = await gasGet(params);
+
+    if (!result.success) {
+      msg.innerHTML = `<div class="msg-error">${result.message}</div>`;
+      tbody.innerHTML = '';
+      return;
+    }
+
+    applications = result.data || [];
+    document.getElementById('applicationCount').textContent = `${applications.length} 件`;
+
+    if (applications.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">申し込みデータがありません</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = applications.map(a => `
+      <tr>
+        <td>${a.appliedAt || '-'}</td>
+        <td style="font-weight:500">${a.name || '-'}</td>
+        <td style="white-space:normal;min-width:160px;font-size:12px">${a.scheduleName || a.scheduleId || '-'}</td>
+        <td>${a.instagram || '-'}</td>
+        <td>${a.line || '-'}</td>
+        <td>${a.phone || '-'}</td>
+        <td>${a.email || '-'}</td>
+        <td style="white-space:normal;min-width:120px;font-size:12px">${a.note || '-'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    msg.innerHTML = `<div class="msg-error">通信エラー: ${e.message}</div>`;
+    tbody.innerHTML = '';
+  }
+}
+
+// ===== CSV ダウンロード =====
+
+function downloadCSV() {
+  if (!applications || applications.length === 0) {
+    alert('ダウンロードするデータがありません。先に申込者一覧を読み込んでください。');
+    return;
+  }
+
+  const headers = ['申込日時', 'お名前', 'スケジュール', 'Instagram ID', 'LINE ID', '電話番号', 'メールアドレス', '備考'];
+  const rows = applications.map(a => [
+    a.appliedAt || '',
+    a.name || '',
+    a.scheduleName || '',
+    a.instagram || '',
+    a.line || '',
+    a.phone || '',
+    a.email || '',
+    a.note || ''
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+
+  const csv = '﻿' + [headers.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `仕入れ同行申込者_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
