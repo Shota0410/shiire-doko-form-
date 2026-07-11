@@ -622,8 +622,12 @@
         <input type="date" id="sDate">
       </div>
       <div class="form-group">
-        <label for="sTime">時刻</label>
-        <input type="time" id="sTime">
+        <label>時刻</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="time" id="sStartTime" style="flex:1">
+          <span style="color:var(--gray);font-size:14px;">〜</span>
+          <input type="time" id="sEndTime" style="flex:1">
+        </div>
       </div>
       <div class="form-group">
         <label for="sLocation">場所・集合場所 <span class="required">*必須</span></label>
@@ -1181,7 +1185,8 @@ function openAddScheduleModal() {
   document.getElementById('scheduleModalSubmitBtn').textContent = '追加する';
   document.getElementById('scheduleEditId').value = '';
   document.getElementById('sDate').value = '';
-  document.getElementById('sTime').value = '';
+  document.getElementById('sStartTime').value = '';
+  document.getElementById('sEndTime').value = '';
   document.getElementById('sLocation').value = '';
   document.getElementById('sCapacity').value = '';
   document.getElementById('sDescription').value = '';
@@ -1196,7 +1201,10 @@ function openEditScheduleModal(s) {
   // 日付をinput[type=date]形式に変換
   const dateVal = String(s.date).replace(/\//g, '-');
   document.getElementById('sDate').value = dateVal;
-  document.getElementById('sTime').value = s.time || '';
+  // 「19:00~22:00」形式を分割してセット
+  const timeParts = (s.time || '').split('~');
+  document.getElementById('sStartTime').value = timeParts[0] ? timeParts[0].trim() : '';
+  document.getElementById('sEndTime').value = timeParts[1] ? timeParts[1].trim() : '';
   document.getElementById('sLocation').value = s.location || '';
   document.getElementById('sCapacity').value = s.capacity;
   document.getElementById('sDescription').value = s.description || '';
@@ -1211,7 +1219,9 @@ function closeScheduleModal() {
 async function submitScheduleModal() {
   const editId = document.getElementById('scheduleEditId').value;
   const date = document.getElementById('sDate').value;
-  const time = document.getElementById('sTime').value;
+  const startTime = document.getElementById('sStartTime').value;
+  const endTime = document.getElementById('sEndTime').value;
+  const time = startTime && endTime ? `${startTime}~${endTime}` : (startTime || endTime || '');
   const location = document.getElementById('sLocation').value.trim();
   const capacity = document.getElementById('sCapacity').value;
   const description = document.getElementById('sDescription').value.trim();
