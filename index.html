@@ -898,16 +898,10 @@ function showPage(id) {
 function handleRoute() {
   const hash = location.hash;
   if (hash === '#admin') {
-    const saved = localStorage.getItem('adminKey');
-    if (saved) {
-      adminKey = saved;
-      openAdminPage();
-    } else {
-      showPage('publicPage');
-      document.getElementById('authKeyInput').value = '';
-      document.getElementById('authError').innerHTML = '';
-      showModal('authModal');
-    }
+    showPage('publicPage');
+    document.getElementById('authKeyInput').value = '';
+    document.getElementById('authError').innerHTML = '';
+    showModal('authModal');
   } else {
     showPage('publicPage');
   }
@@ -935,7 +929,6 @@ async function doAuth() {
     hideSpinner();
     if (result.success) {
       adminKey = key;
-      localStorage.setItem('adminKey', key);
       hideModal('authModal');
       openAdminPage();
     } else {
