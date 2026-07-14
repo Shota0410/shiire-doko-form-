@@ -29,7 +29,7 @@ function getOrCreateSheet(ss, name, headers) {
 function initSheets() {
   var ss = getSpreadsheet();
 
-  var scheduleHeaders = ['ID', '日付', '時刻', '場所・集合場所', '定員', '説明・備考', '作成日時'];
+  var scheduleHeaders = ['ID', '日付', '時刻', '場所・集合場所', '定員', '説明・備考', '作成日時', '担当者'];
   var applicationHeaders = ['申込ID', 'スケジュールID', '申込日時', 'お名前', 'Instagram ID', 'LINE ID', '電話番号', 'メールアドレス', '備考'];
 
   var scheduleSheet = getOrCreateSheet(ss, 'スケジュール', scheduleHeaders);
@@ -104,6 +104,7 @@ function getSchedules() {
       capacity: capacity,
       description: row[5],
       createdAt: row[6],
+      staff: row[7] || '',
       applied: applied,
       remaining: remaining < 0 ? 0 : remaining
     });
@@ -264,7 +265,8 @@ function addSchedule(params) {
     location,
     Number(capacity) || 0,
     params.description || '',
-    createdAt
+    createdAt,
+    params.staff || ''
   ]);
 
   return { success: true, message: 'スケジュールを追加しました', data: { id: id } };
@@ -304,6 +306,7 @@ function updateSchedule(params) {
   scheduleSheet.getRange(targetRow, 4).setValue(params.location || scheduleData[targetRow - 1][3]);
   scheduleSheet.getRange(targetRow, 5).setValue(params.capacity !== undefined ? Number(params.capacity) : scheduleData[targetRow - 1][4]);
   scheduleSheet.getRange(targetRow, 6).setValue(params.description !== undefined ? params.description : scheduleData[targetRow - 1][5]);
+  scheduleSheet.getRange(targetRow, 8).setValue(params.staff !== undefined ? params.staff : (scheduleData[targetRow - 1][7] || ''));
 
   return { success: true, message: 'スケジュールを更新しました' };
 }
