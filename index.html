@@ -727,18 +727,6 @@
               <input type="text" id="fName" placeholder="山田 花子" required>
             </div>
             <div class="form-group">
-              <label for="fInstagram">Instagram ID <span class="optional">任意</span></label>
-              <input type="text" id="fInstagram" placeholder="@example">
-            </div>
-            <div class="form-group">
-              <label for="fLine">LINE ID <span class="optional">任意</span></label>
-              <input type="text" id="fLine" placeholder="example_line">
-            </div>
-            <div class="form-group">
-              <label for="fPhone">電話番号 <span class="optional">任意</span></label>
-              <input type="tel" id="fPhone" placeholder="090-0000-0000">
-            </div>
-            <div class="form-group">
               <label for="fEmail">メールアドレス <span class="optional">任意</span></label>
               <input type="email" id="fEmail" placeholder="example@email.com">
             </div>
@@ -1100,9 +1088,6 @@ async function submitApply(e) {
       action: 'apply',
       scheduleId: selectedScheduleId,
       name,
-      instagram: document.getElementById('fInstagram').value.trim(),
-      line: document.getElementById('fLine').value.trim(),
-      phone: document.getElementById('fPhone').value.trim(),
       email: document.getElementById('fEmail').value.trim(),
       note: document.getElementById('fNote').value.trim()
     });
