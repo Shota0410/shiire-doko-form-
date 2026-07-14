@@ -623,10 +623,16 @@
       </div>
       <div class="form-group">
         <label>時刻</label>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <select id="sStartTime" style="flex:1"><option value="">未選択</option></select>
-          <span style="color:var(--gray);font-size:14px;">〜</span>
-          <select id="sEndTime" style="flex:1"><option value="">未選択</option></select>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <select id="sStartHour" style="width:70px"></select>
+          <span style="color:var(--gray);font-size:13px">時</span>
+          <select id="sStartMin" style="width:70px"></select>
+          <span style="color:var(--gray);font-size:13px">分</span>
+          <span style="color:var(--gray);font-size:14px;padding:0 4px">〜</span>
+          <select id="sEndHour" style="width:70px"></select>
+          <span style="color:var(--gray);font-size:13px">時</span>
+          <select id="sEndMin" style="width:70px"></select>
+          <span style="color:var(--gray);font-size:13px">分</span>
         </div>
       </div>
       <div class="form-group">
@@ -1178,18 +1184,23 @@ function renderAdminScheduleTable(list) {
 // ===== 管理: スケジュール追加モーダル =====
 
 function initTimeSelects() {
-  ['sStartTime', 'sEndTime'].forEach(id => {
+  ['sStartHour', 'sEndHour'].forEach(id => {
     const sel = document.getElementById(id);
-    const current = sel.value;
-    sel.innerHTML = '<option value="">未選択</option>';
+    if (sel.options.length > 1) return;
+    sel.innerHTML = '<option value="">--</option>';
     for (let h = 0; h < 24; h++) {
-      for (let m = 0; m < 60; m += 5) {
-        const val = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-        const opt = new Option(val, val);
-        sel.appendChild(opt);
-      }
+      const val = String(h).padStart(2,'0');
+      sel.add(new Option(val, val));
     }
-    sel.value = current;
+  });
+  ['sStartMin', 'sEndMin'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel.options.length > 1) return;
+    sel.innerHTML = '<option value="">--</option>';
+    for (let m = 0; m < 60; m += 5) {
+      const val = String(m).padStart(2,'0');
+      sel.add(new Option(val, val));
+    }
   });
 }
 
@@ -1199,8 +1210,10 @@ function openAddScheduleModal() {
   document.getElementById('scheduleModalSubmitBtn').textContent = '追加する';
   document.getElementById('scheduleEditId').value = '';
   document.getElementById('sDate').value = '';
-  document.getElementById('sStartTime').value = '';
-  document.getElementById('sEndTime').value = '';
+  document.getElementById('sStartHour').value = '';
+  document.getElementById('sStartMin').value = '';
+  document.getElementById('sEndHour').value = '';
+  document.getElementById('sEndMin').value = '';
   document.getElementById('sLocation').value = '';
   document.getElementById('sCapacity').value = '';
   document.getElementById('sStaff').value = '';
@@ -1219,8 +1232,12 @@ function openEditScheduleModal(s) {
   document.getElementById('sDate').value = dateVal;
   // 「19:00~22:00」形式を分割してセット
   const timeParts = (s.time || '').split('~');
-  document.getElementById('sStartTime').value = timeParts[0] ? timeParts[0].trim() : '';
-  document.getElementById('sEndTime').value = timeParts[1] ? timeParts[1].trim() : '';
+  const startParts = (timeParts[0] || '').trim().split(':');
+  const endParts   = (timeParts[1] || '').trim().split(':');
+  document.getElementById('sStartHour').value = startParts[0] || '';
+  document.getElementById('sStartMin').value  = startParts[1] || '';
+  document.getElementById('sEndHour').value   = endParts[0]   || '';
+  document.getElementById('sEndMin').value    = endParts[1]   || '';
   document.getElementById('sLocation').value = s.location || '';
   document.getElementById('sCapacity').value = s.capacity;
   document.getElementById('sStaff').value = s.staff || '';
@@ -1236,8 +1253,12 @@ function closeScheduleModal() {
 async function submitScheduleModal() {
   const editId = document.getElementById('scheduleEditId').value;
   const date = document.getElementById('sDate').value;
-  const startTime = document.getElementById('sStartTime').value;
-  const endTime = document.getElementById('sEndTime').value;
+  const sH = document.getElementById('sStartHour').value;
+  const sM = document.getElementById('sStartMin').value;
+  const eH = document.getElementById('sEndHour').value;
+  const eM = document.getElementById('sEndMin').value;
+  const startTime = (sH && sM) ? `${sH}:${sM}` : '';
+  const endTime   = (eH && eM) ? `${eH}:${eM}` : '';
   const time = startTime && endTime ? `${startTime}~${endTime}` : (startTime || endTime || '');
   const location = document.getElementById('sLocation').value.trim();
   const capacity = document.getElementById('sCapacity').value;
