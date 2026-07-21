@@ -684,7 +684,9 @@
       仕入れ同行
       <span>Buying Trip</span>
     </div>
-    <nav class="header-nav" id="headerNav"></nav>
+    <nav class="header-nav" id="headerNav">
+      <a href="#admin" id="adminLink">管理者ページ</a>
+    </nav>
   </div>
 </header>
 
@@ -800,15 +802,12 @@
               <th>申込日時</th>
               <th>お名前</th>
               <th>スケジュール</th>
-              <th>Instagram</th>
-              <th>LINE</th>
-              <th>電話番号</th>
               <th>メール</th>
               <th>備考</th>
             </tr>
           </thead>
           <tbody id="adminApplicationBody">
-            <tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">スケジュールを選択してください</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--gray);padding:30px">スケジュールを選択してください</td></tr>
           </tbody>
         </table>
       </div>
@@ -823,19 +822,62 @@
 
 <script>
 // ============================================================
-// ★ GAS Web App の URL をここに設定してください ★
-// Google Apps Script でデプロイ後に表示されるURLを貼り付けてください
-// 例: 'https://script.google.com/macros/s/XXXXXXX/exec'
+// 管理者キー（変更して使用してください）
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxCl2STzpFC_vv1JzyuEIQdZmuhLhKrwoSwza0d7PIGVC_P9mRW9ydXCn9XmGkQt_D3tg/exec';
+const ADMIN_KEY = 'admin2024';
 // ============================================================
 
 // ===== 状態管理 =====
 let selectedScheduleId = null;
 let schedules = [];
-let adminKey = '';
 let deleteTargetId = null;
 let applications = [];
+
+// ===== localStorage ヘルパー =====
+
+function getStoredSchedules() {
+  try { return JSON.parse(localStorage.getItem('buyingTrip_schedules') || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveStoredSchedules(list) {
+  localStorage.setItem('buyingTrip_schedules', JSON.stringify(list));
+}
+
+function getStoredApplications() {
+  try { return JSON.parse(localStorage.getItem('buyingTrip_applications') || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveStoredApplications(list) {
+  localStorage.setItem('buyingTrip_applications', JSON.stringify(list));
+}
+
+function generateId() {
+  return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+}
+
+function nowStr() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function getSchedulesWithCounts() {
+  const stored = getStoredSchedules();
+  const apps = getStoredApplications();
+  const countMap = {};
+  apps.forEach(a => { if (a.scheduleId) countMap[a.scheduleId] = (countMap[a.scheduleId] || 0) + 1; });
+  return stored.map(s => ({
+    ...s,
+    applied: countMap[s.id] || 0,
+    remaining: Math.max(0, (Number(s.capacity) || 0) - (countMap[s.id] || 0))
+  })).sort((a, b) => {
+    const da = new Date(String(a.date).replace(/\//g,'-') + 'T' + ((a.time||'').split('~')[0] || '00:00'));
+    const db = new Date(String(b.date).replace(/\//g,'-') + 'T' + ((b.time||'').split('~')[0] || '00:00'));
+    return da - db;
+  });
+}
 
 // ===== ユーティリティ =====
 
@@ -858,27 +900,6 @@ function formatDate(dateStr) {
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}（${days[d.getDay()]}）`;
 }
 
-// GASへのリクエスト（GET）
-async function gasGet(params) {
-  if (!GAS_URL) return { success: false, message: 'GAS_URL が設定されていません。index.html の先頭付近の GAS_URL 変数にURLを貼り付けてください。' };
-  const url = new URL(GAS_URL);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), { redirect: 'follow' });
-  return res.json();
-}
-
-// GASへのリクエスト（POST）
-async function gasPost(body) {
-  if (!GAS_URL) return { success: false, message: 'GAS_URL が設定されていません。index.html の先頭付近の GAS_URL 変数にURLを貼り付けてください。' };
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    redirect: 'follow',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(body)
-  });
-  return res.json();
-}
-
 // ===== ページルーティング =====
 
 function goHome() {
@@ -887,6 +908,7 @@ function goHome() {
   showPage('publicPage');
   document.getElementById('adminLink').textContent = '管理者ページ';
   document.getElementById('adminLink').href = '#admin';
+  document.getElementById('adminLink').onclick = null;
 }
 
 function showPage(id) {
@@ -916,30 +938,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ===== 認証 =====
 
-async function doAuth() {
+function doAuth() {
   const key = document.getElementById('authKeyInput').value.trim();
   if (!key) {
     document.getElementById('authError').innerHTML = '<div class="msg-error">管理者キーを入力してください</div>';
     return;
   }
-  showSpinner('認証中...');
-  try {
-    const result = await gasGet({ action: 'getApplications', adminKey: key });
-    hideSpinner();
-    if (result.success) {
-      adminKey = key;
-      hideModal('authModal');
-      openAdminPage();
-    } else {
-      document.getElementById('authError').innerHTML = '<div class="msg-error">管理者キーが正しくありません</div>';
-    }
-  } catch (e) {
-    hideSpinner();
-    document.getElementById('authError').innerHTML = `<div class="msg-error">接続エラー: ${e.message}</div>`;
+  if (key === ADMIN_KEY) {
+    hideModal('authModal');
+    openAdminPage();
+  } else {
+    document.getElementById('authError').innerHTML = '<div class="msg-error">管理者キーが正しくありません</div>';
   }
 }
 
-// Enterキーでもログイン
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('authKeyInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') doAuth();
@@ -947,8 +959,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function logout() {
-  localStorage.removeItem('adminKey');
-  adminKey = '';
   goHome();
 }
 
@@ -974,20 +984,10 @@ function switchTab(tabId, btn) {
 
 // ===== 申込ページ: スケジュール読み込み =====
 
-async function loadSchedules() {
+function loadSchedules() {
   const container = document.getElementById('schedulesContainer');
-  container.innerHTML = '<div class="msg-info">スケジュールを読み込み中...</div>';
-  try {
-    const result = await gasGet({ action: 'getSchedules' });
-    if (!result.success) {
-      container.innerHTML = `<div class="msg-error">${result.message || 'スケジュールの取得に失敗しました'}</div>`;
-      return;
-    }
-    schedules = result.data || [];
-    renderScheduleCards(schedules);
-  } catch (e) {
-    container.innerHTML = `<div class="msg-error">接続エラー: ${e.message}<br><small>GAS_URLが正しく設定されているか確認してください</small></div>`;
-  }
+  schedules = getSchedulesWithCounts();
+  renderScheduleCards(schedules);
 }
 
 function renderScheduleCards(list) {
@@ -1033,7 +1033,6 @@ function renderScheduleCards(list) {
 }
 
 function selectSchedule(id, data, cardEl) {
-  // 既存の選択を解除
   document.querySelectorAll('.schedule-card.selected').forEach(c => {
     c.classList.remove('selected');
     const badge = c.querySelector('[data-badge]');
@@ -1041,7 +1040,6 @@ function selectSchedule(id, data, cardEl) {
   });
 
   if (selectedScheduleId === id) {
-    // 同じカードをクリックで選択解除
     selectedScheduleId = null;
     document.getElementById('formSection').style.display = 'none';
     return;
@@ -1052,7 +1050,6 @@ function selectSchedule(id, data, cardEl) {
   const badge = cardEl.querySelector('[data-badge]');
   if (badge) badge.style.display = 'inline';
 
-  // フォーム表示
   document.getElementById('selectedInfo').innerHTML = `
     <div style="font-size:12px;color:var(--gray);margin-bottom:4px">選択中のスケジュール</div>
     <strong>${formatDate(data.date)} ${data.time || ''}</strong><br>
@@ -1079,32 +1076,42 @@ async function submitApply(e) {
     return;
   }
 
+  const storedSchedules = getStoredSchedules();
+  const apps = getStoredApplications();
+  const schedule = storedSchedules.find(s => s.id === selectedScheduleId);
+  if (!schedule) {
+    document.getElementById('formError').innerHTML = '<div class="msg-error">スケジュールが見つかりません</div>';
+    return;
+  }
+  const appliedCount = apps.filter(a => a.scheduleId === selectedScheduleId).length;
+  if (Number(schedule.capacity) > 0 && appliedCount >= Number(schedule.capacity)) {
+    document.getElementById('formError').innerHTML = '<div class="msg-error">このスケジュールは満席です</div>';
+    return;
+  }
+
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner-inline"></span> 送信中...';
 
-  try {
-    const result = await gasPost({
-      action: 'apply',
-      scheduleId: selectedScheduleId,
-      name,
-      email: document.getElementById('fEmail').value.trim(),
-      note: document.getElementById('fNote').value.trim()
-    });
+  const newApp = {
+    id: generateId(),
+    scheduleId: selectedScheduleId,
+    scheduleName: `${schedule.date} ${schedule.time || ''} ${schedule.location}`,
+    appliedAt: nowStr(),
+    name,
+    email: document.getElementById('fEmail').value.trim(),
+    note: document.getElementById('fNote').value.trim()
+  };
 
-    if (result.success) {
-      document.getElementById('publicMain').style.display = 'none';
-      document.getElementById('thankYouSection').style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      document.getElementById('formError').innerHTML = `<div class="msg-error">${result.message || '送信に失敗しました'}</div>`;
-    }
-  } catch (err) {
-    document.getElementById('formError').innerHTML = `<div class="msg-error">通信エラー: ${err.message}</div>`;
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '申し込みを送信する';
-  }
+  apps.push(newApp);
+  saveStoredApplications(apps);
+
+  document.getElementById('publicMain').style.display = 'none';
+  document.getElementById('thankYouSection').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = '申し込みを送信する';
 }
 
 function resetPublicPage() {
@@ -1120,25 +1127,11 @@ function resetPublicPage() {
 
 // ===== 管理: スケジュール一覧 =====
 
-async function loadAdminSchedules() {
-  const tbody = document.getElementById('adminScheduleBody');
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">読み込み中...</td></tr>';
+function loadAdminSchedules() {
   document.getElementById('adminScheduleMsg').innerHTML = '';
-
-  try {
-    const result = await gasGet({ action: 'getSchedules' });
-    if (!result.success) {
-      document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">${result.message}</div>`;
-      tbody.innerHTML = '';
-      return;
-    }
-    schedules = result.data || [];
-    renderAdminScheduleTable(schedules);
-    updateApplicationFilter(schedules);
-  } catch (e) {
-    document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">接続エラー: ${e.message}</div>`;
-    tbody.innerHTML = '';
-  }
+  schedules = getSchedulesWithCounts();
+  renderAdminScheduleTable(schedules);
+  updateApplicationFilter(schedules);
 }
 
 function renderAdminScheduleTable(list) {
@@ -1212,10 +1205,8 @@ function openEditScheduleModal(s) {
   document.getElementById('scheduleModalTitle').textContent = '日程を編集';
   document.getElementById('scheduleModalSubmitBtn').textContent = '更新する';
   document.getElementById('scheduleEditId').value = s.id;
-  // 日付をinput[type=date]形式に変換
   const dateVal = String(s.date).replace(/\//g, '-');
   document.getElementById('sDate').value = dateVal;
-  // 「19:00~22:00」形式を分割してセット
   const timeParts = (s.time || '').split('~');
   const startParts = (timeParts[0] || '').trim().split(':');
   const endParts   = (timeParts[1] || '').trim().split(':');
@@ -1235,7 +1226,7 @@ function closeScheduleModal() {
   hideModal('scheduleModal');
 }
 
-async function submitScheduleModal() {
+function submitScheduleModal() {
   const editId = document.getElementById('scheduleEditId').value;
   const date = document.getElementById('sDate').value;
   const sH = document.getElementById('sStartHour').value;
@@ -1255,33 +1246,32 @@ async function submitScheduleModal() {
     return;
   }
 
-  const btn = document.getElementById('scheduleModalSubmitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-inline"></span> 送信中...';
+  const formattedDate = date.replace(/-/g, '/');
+  const stored = getStoredSchedules();
 
-  try {
-    let result;
-    // 日付を YYYY/MM/DD 形式に変換
-    const formattedDate = date.replace(/-/g, '/');
-
-    if (editId) {
-      result = await gasPost({ action: 'updateSchedule', adminKey, id: editId, date: formattedDate, time, location, capacity: Number(capacity), description, staff });
-    } else {
-      result = await gasPost({ action: 'addSchedule', adminKey, date: formattedDate, time, location, capacity: Number(capacity), description, staff });
+  if (editId) {
+    const idx = stored.findIndex(s => s.id === editId);
+    if (idx === -1) {
+      document.getElementById('scheduleModalError').innerHTML = '<div class="msg-error">スケジュールが見つかりません</div>';
+      return;
     }
-
-    if (result.success) {
-      closeScheduleModal();
-      loadAdminSchedules();
-    } else {
-      document.getElementById('scheduleModalError').innerHTML = `<div class="msg-error">${result.message}</div>`;
-    }
-  } catch (e) {
-    document.getElementById('scheduleModalError').innerHTML = `<div class="msg-error">通信エラー: ${e.message}</div>`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = editId ? '更新する' : '追加する';
+    stored[idx] = { ...stored[idx], date: formattedDate, time, location, capacity: Number(capacity), description, staff };
+  } else {
+    stored.push({
+      id: generateId(),
+      date: formattedDate,
+      time,
+      location,
+      capacity: Number(capacity),
+      description,
+      staff,
+      createdAt: nowStr()
+    });
   }
+
+  saveStoredSchedules(stored);
+  closeScheduleModal();
+  loadAdminSchedules();
 }
 
 // ===== 管理: スケジュール削除 =====
@@ -1295,28 +1285,14 @@ function closeDeleteModal() {
   deleteTargetId = null;
 }
 
-async function confirmDelete() {
+function confirmDelete() {
   if (!deleteTargetId) return;
-  const btn = document.getElementById('deleteConfirmBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-inline"></span> 削除中...';
 
-  try {
-    const result = await gasPost({ action: 'deleteSchedule', adminKey, id: deleteTargetId });
-    if (result.success) {
-      closeDeleteModal();
-      loadAdminSchedules();
-    } else {
-      closeDeleteModal();
-      document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">${result.message}</div>`;
-    }
-  } catch (e) {
-    closeDeleteModal();
-    document.getElementById('adminScheduleMsg').innerHTML = `<div class="msg-error">通信エラー: ${e.message}</div>`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '削除する';
-  }
+  saveStoredSchedules(getStoredSchedules().filter(s => s.id !== deleteTargetId));
+  saveStoredApplications(getStoredApplications().filter(a => a.scheduleId !== deleteTargetId));
+
+  closeDeleteModal();
+  loadAdminSchedules();
 }
 
 // ===== 管理: 申込者一覧 =====
@@ -1332,49 +1308,34 @@ function updateApplicationFilter(list) {
   });
 }
 
-async function loadApplications() {
+function loadApplications() {
   const tbody = document.getElementById('adminApplicationBody');
   const msg = document.getElementById('adminApplicationMsg');
   const scheduleId = document.getElementById('applicationFilter').value;
 
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">読み込み中...</td></tr>';
   msg.innerHTML = '';
 
-  try {
-    const params = { action: 'getApplications', adminKey };
-    if (scheduleId) params.scheduleId = scheduleId;
-    const result = await gasGet(params);
+  let apps = getStoredApplications();
+  if (scheduleId) apps = apps.filter(a => a.scheduleId === scheduleId);
+  apps.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+  applications = apps;
 
-    if (!result.success) {
-      msg.innerHTML = `<div class="msg-error">${result.message}</div>`;
-      tbody.innerHTML = '';
-      return;
-    }
+  document.getElementById('applicationCount').textContent = `${apps.length} 件`;
 
-    applications = result.data || [];
-    document.getElementById('applicationCount').textContent = `${applications.length} 件`;
-
-    if (applications.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">申し込みデータがありません</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = applications.map(a => `
-      <tr>
-        <td>${a.appliedAt || '-'}</td>
-        <td style="font-weight:500">${a.name || '-'}</td>
-        <td style="white-space:normal;min-width:160px;font-size:12px">${a.scheduleName || a.scheduleId || '-'}</td>
-        <td>${a.instagram || '-'}</td>
-        <td>${a.line || '-'}</td>
-        <td>${a.phone || '-'}</td>
-        <td>${a.email || '-'}</td>
-        <td style="white-space:normal;min-width:120px;font-size:12px">${a.note || '-'}</td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    msg.innerHTML = `<div class="msg-error">通信エラー: ${e.message}</div>`;
-    tbody.innerHTML = '';
+  if (apps.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:30px">申し込みデータがありません</td></tr>';
+    return;
   }
+
+  tbody.innerHTML = apps.map(a => `
+    <tr>
+      <td>${a.appliedAt || '-'}</td>
+      <td style="font-weight:500">${a.name || '-'}</td>
+      <td style="white-space:normal;min-width:160px;font-size:12px">${a.scheduleName || a.scheduleId || '-'}</td>
+      <td>${a.email || '-'}</td>
+      <td style="white-space:normal;min-width:120px;font-size:12px">${a.note || '-'}</td>
+    </tr>
+  `).join('');
 }
 
 // ===== CSV ダウンロード =====
@@ -1385,14 +1346,11 @@ function downloadCSV() {
     return;
   }
 
-  const headers = ['申込日時', 'お名前', 'スケジュール', 'Instagram ID', 'LINE ID', '電話番号', 'メールアドレス', '備考'];
+  const headers = ['申込日時', 'お名前', 'スケジュール', 'メールアドレス', '備考'];
   const rows = applications.map(a => [
     a.appliedAt || '',
     a.name || '',
     a.scheduleName || '',
-    a.instagram || '',
-    a.line || '',
-    a.phone || '',
     a.email || '',
     a.note || ''
   ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
